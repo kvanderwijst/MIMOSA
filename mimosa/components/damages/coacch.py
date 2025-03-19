@@ -10,6 +10,7 @@ from mimosa.common import (
     Var,
     GeneralConstraint,
     RegionalConstraint,
+    GlobalConstraint,
     value,
     soft_max,
     Any,
@@ -36,6 +37,7 @@ def get_constraints(m: AbstractModel) -> Sequence[GeneralConstraint]:
     constraints = []
 
     m.damage_costs = Var(m.t, m.regions, units=quant.unit("fraction_of_GDP"))
+    m.global_damage_costs = Var(m.t, units=quant.unit("fraction_of_GDP"))
     m.damage_scale_factor = Param(doc="::economics.damages.scale factor")
 
     # Damages not related to SLR (dependent on temperature)
@@ -64,6 +66,14 @@ def get_constraints(m: AbstractModel) -> Sequence[GeneralConstraint]:
             == m.damage_scale_factor
             * damage_fct(m.temperature[t] - 0.6, m.T0 - 0.6, m, r, is_slr=False),
             "damage_costs_non_slr",
+        )
+    )
+
+    #nieuwe constraint: 
+    constraints.append(
+        GlobalConstraint(
+            lambda m, t: m.global_damage_costs[t] == sum(m.damage_costs[t, r] for r in m.regions),
+            "global_damage_sum",
         )
     )
 
